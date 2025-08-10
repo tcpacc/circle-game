@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Multiplayer Circles — Rooms</title>
+  <style>
+    body { margin:0; font-family: system-ui, sans-serif; background:#111; color:#eee }
+    #wrap { display:flex; height:100vh; align-items:center; justify-content:center }
+    canvas { background: #222; box-shadow: 0 6px 24px rgba(0,0,0,0.6); }
+    .ui { position:fixed; left:12px; top:12px; color:#ddd; font-size:14px }
+    #joinBox { position:fixed; left:12px; bottom:12px; background:#161616; padding:10px; border-radius:6px }
+    #joinBox input { margin-right:6px }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="game" style="display:none"></canvas>
+  </div>
+
+  <div id="joinBox">
+  <form id="joinForm">
+    <input type="text" id="username" placeholder="Username" required>
+    <input type="text" id="room" placeholder="Room name" required>
+    <input type="password" id="pass" placeholder="Passcode" required>
+    <button type="submit">Join / Create</button>
+  </form>
+  <div id="msg"></div>
+  </div>
+  <button id="leaveBtn" style="display:none; position:fixed; right:12px; top:12px;">Leave Room</button>
+  <div class="ui">WASD / Arrow keys to move — open multiple browser tabs to play</div>
+  <button id="leaveBtn" style="display:none; position:fixed; right:12px; top:12px;">Leave Room</button>
+  <div id="chat" style="display:none; position:fixed; bottom:10px; left:10px; width:250px; background:rgba(0,0,0,0.5); color:white; padding:5px; font-family:sans-serif;">
+    <div id="messages" style="height:120px; overflow-y:auto; font-size:12px;"></div>
+    <form id="chatForm" style="margin-top:4px; display:flex;">
+        <input id="chatInput" type="text" placeholder="Type message..." style="flex:1; font-size:12px;" autocomplete="off">
+        <button type="submit" style="font-size:12px;">Send</button>
+    </form>
+    </div>
+
+  <!-- Socket.IO client must be loaded first -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <!-- Main client script (connects socket and handles rendering) -->
+  <script src="/static/main.js"></script>
+  <!-- Small inline behaviour for the join form that uses the same `socket` object declared in main.js -->
+  <script>
+    const leaveBtn = document.getElementById('leaveBtn');
+    const joinForm = document.getElementById('joinForm');
+    const msg = document.getElementById('msg');
+    joinForm.addEventListener('submit', e => {
+        e.preventDefault();
+        msg.textContent = 'Joining...';
+        socket.emit('join_room', {
+            room: document.getElementById('room').value,
+            passcode: document.getElementById('pass').value,
+            username: document.getElementById('username').value
+        }); 
+    });
+
+    socket.on('join_error', data => {
+      msg.textContent = data.error || 'Join failed';
+    });
+
+    socket.on('init', () => {
+      // hide the join UI and show canvas
+      document.getElementById('joinBox').style.display = 'none';
+      document.getElementById('game').style.display = 'block';
+      msg.textContent = '';
+    });
+
+    socket.on('system_message', data => {
+      // optional: flash system messages
+      console.log('SYS:', data.msg);
+    });
+
+    leaveBtn.addEventListener('click', () => {
+        socket.emit('leave_room');
+        joined = false;
+        document.getElementById('joinBox').style.display = 'block';
+        document.getElementById('game').style.display = 'none';
+        document.getElementById("chat").style.display = "none";
+        leaveBtn.style.display = 'none';
+    });
+
+    socket.on('init', () => {
+        document.getElementById('joinBox').style.display = 'none';
+        document.getElementById('game').style.display = 'block';
+        leaveBtn.style.display = 'block';
+    });
+  </script>
+</body>
+</html>
