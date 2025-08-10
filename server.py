@@ -80,11 +80,11 @@ def handle_join(data):
     if room_name not in rooms:
             rooms[room_name] = {'passcode': existing_passcode or existing_passcode, 'players': {}}
     
-    # if sid in usedUserNames.keys():
-    #     socketio.emit('join_error', {'error': 'Username Already In Use'}, room=sid)
-    #     return
-    # else:
-    #     usedUserNames[sid] = username
+    if username in usedUserNames.values():
+        socketio.emit('join_error', {'error': 'Username Already In Use'}, room=sid)
+        return
+    else:
+        usedUserNames[sid] = username
 
     p = {
         'id': sid,
@@ -111,6 +111,7 @@ def handle_disconnect():
         if room_name in rooms and sid in rooms[room_name]['players']:
             rooms[room_name]['players'].pop(sid, None)
             leave_room(room_name)
+            socketio.emit('state', {'room': room_name, 'players': rooms[room_name]['players']}, room=room_name)
             socketio.emit('system_message', {'msg': f'Player left {room_name}'}, room=room_name)
             if not rooms[room_name]['players']:
                 del rooms[room_name]
@@ -194,6 +195,7 @@ def handle_leave():
             if not room_data['players']:
                 del rooms[room_name]
             break
+    socketio.emit('state', {'room': room_name, 'players': rooms[room_name]['players']}, room=room_name)
 
 if __name__ == '__main__':
     socketio.start_background_task(game_loop)
