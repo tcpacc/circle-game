@@ -30,7 +30,7 @@ window.addEventListener('resize', resize);
 
 socket.on('init', (d) => {
   myId = d.id;
-  currentRoom = d.room; // NEW
+  currentRoom = d.room; 
   WORLD.w = d.w; WORLD.h = d.h;
   joined = true;
   resize();
@@ -106,7 +106,6 @@ window.addEventListener('keyup', (e)=>{
 
 // rendering
 function render(){
-  console.log("test")
   window.addEventListener("blur",()=>{
     keys.right =false;
     keys.left =false;
@@ -121,6 +120,7 @@ function render(){
   ctx.restore();
 
   for(const sid in players){
+    console.log("test")
     const p = players[sid];
     const x = p.x; const y = p.y; const r = p.r || 16;
     ctx.beginPath();
