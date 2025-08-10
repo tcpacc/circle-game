@@ -105,82 +105,82 @@ window.addEventListener('keyup', (e)=>{
 });
 
 // rendering
-function render(){
-  window.addEventListener("blur",()=>{
-    keys.right =false;
-    keys.left =false;
-    keys.up =false;
-    keys.down =false;
-  })
-  ctx.clearRect(0,0,WORLD.w,WORLD.h);
-  ctx.save();
-  ctx.globalAlpha = 0.06;
-  for(let x=0;x<WORLD.w;x+=40){ctx.fillRect(x,0,1,WORLD.h)}
-  for(let y=0;y<WORLD.h;y+=40){ctx.fillRect(0,y,WORLD.w,1)}
-  ctx.restore();
+// function render(){
+//   window.addEventListener("blur",()=>{
+//     keys.right =false;
+//     keys.left =false;
+//     keys.up =false;
+//     keys.down =false;
+//   })
+//   ctx.clearRect(0,0,WORLD.w,WORLD.h);
+//   ctx.save();
+//   ctx.globalAlpha = 0.06;
+//   for(let x=0;x<WORLD.w;x+=40){ctx.fillRect(x,0,1,WORLD.h)}
+//   for(let y=0;y<WORLD.h;y+=40){ctx.fillRect(0,y,WORLD.w,1)}
+//   ctx.restore();
 
-  for(const sid in players){
-    console.log("test")
-    const p = players[sid];
-    const x = p.x; const y = p.y; const r = p.r || 16;
-    ctx.beginPath();
-    ctx.arc(x,y,r,0,Math.PI*2);
-    ctx.fillStyle = p.color || '#999';
-    ctx.fill();
-    if(sid === myId){
-      ctx.lineWidth = 2.5;
-      ctx.strokeStyle = '#fff';
-      ctx.stroke();
-    } else {
-      ctx.lineWidth = 1.0;
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-      ctx.stroke();
-    }
-    
-    // draw username
-    if(p.username){
-        ctx.fillStyle = '#fff';
-        ctx.font = '12px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(p.username, x, y - r - 6);
-    }
-
-    //draw speech bubbles if active
-    if (speechBubbles[p.id] && Date.now() - speechBubbles[p.id].timer < 3000) {
-      const bubbleText = speechBubbles[p.id].text;
-      const padding = 10;
-      ctx.font = '10px sans-serif';
-      const textWidth = ctx.measureText(bubbleText).width;
-      const bubbleWidth = textWidth + padding * 2;
-      const bubbleX = p.x - bubbleWidth / 2;
-      const bubbleY = p.y - 50;
-
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(bubbleX, bubbleY, bubbleWidth, 20);
-      ctx.fillStyle = 'white';
-      ctx.fillText(bubbleText, p.x, p.y - 36);
-    } else if (speechBubbles[p.id] && Date.now() - speechBubbles[p.id].timer >= 3000) {
-      delete speechBubbles[p.id];
-    }
-  }
-  requestAnimationFrame(render);
-}
-
-
-requestAnimationFrame(render);
-
-// function draw() {
-//   ctx.clearRect(0, 0, WORLD.w, WORLD.h);
-//   for (const id in players) {
-//     const p = players[id];
-//     ctx.fillStyle = p.color;
+//   for(const sid in players){
+//     console.log("test")
+//     const p = players[sid];
+//     const x = p.x; const y = p.y; const r = p.r || 16;
 //     ctx.beginPath();
-//     ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+//     ctx.arc(x,y,r,0,Math.PI*2);
+//     ctx.fillStyle = p.color || '#999';
 //     ctx.fill();
+//     if(sid === myId){
+//       ctx.lineWidth = 2.5;
+//       ctx.strokeStyle = '#fff';
+//       ctx.stroke();
+//     } else {
+//       ctx.lineWidth = 1.0;
+//       ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+//       ctx.stroke();
+//     }
+    
+//     // draw username
+//     if(p.username){
+//         ctx.fillStyle = '#fff';
+//         ctx.font = '12px sans-serif';
+//         ctx.textAlign = 'center';
+//         ctx.fillText(p.username, x, y - r - 6);
+//     }
+
+//     //draw speech bubbles if active
+//     if (speechBubbles[p.id] && Date.now() - speechBubbles[p.id].timer < 3000) {
+//       const bubbleText = speechBubbles[p.id].text;
+//       const padding = 10;
+//       ctx.font = '10px sans-serif';
+//       const textWidth = ctx.measureText(bubbleText).width;
+//       const bubbleWidth = textWidth + padding * 2;
+//       const bubbleX = p.x - bubbleWidth / 2;
+//       const bubbleY = p.y - 50;
+
+//       ctx.fillStyle = 'rgba(0,0,0,0.7)';
+//       ctx.fillRect(bubbleX, bubbleY, bubbleWidth, 20);
+//       ctx.fillStyle = 'white';
+//       ctx.fillText(bubbleText, p.x, p.y - 36);
+//     } else if (speechBubbles[p.id] && Date.now() - speechBubbles[p.id].timer >= 3000) {
+//       delete speechBubbles[p.id];
+//     }
 //   }
-//   requestAnimationFrame(draw);
+//   requestAnimationFrame(render);
 // }
-// draw();
+
+
+// requestAnimationFrame(render);
+
+function draw() {
+  ctx.clearRect(0, 0, WORLD.w, WORLD.h);
+  for (const id in players) {
+    const p = players[id];
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  requestAnimationFrame(draw);
+}
+draw();
 
 // send input regularly
 setInterval(sendInput, 100);
