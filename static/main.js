@@ -106,6 +106,7 @@ window.addEventListener('keyup', (e)=>{
 
 // rendering
 function render(){
+  console.log("test")
   window.addEventListener("blur",()=>{
     keys.right =false;
     keys.left =false;
@@ -168,18 +169,18 @@ function render(){
 
 requestAnimationFrame(render);
 
-function draw() {
-  ctx.clearRect(0, 0, WORLD.w, WORLD.h);
-  for (const id in players) {
-    const p = players[id];
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  requestAnimationFrame(draw);
-}
-draw();
+// function draw() {
+//   ctx.clearRect(0, 0, WORLD.w, WORLD.h);
+//   for (const id in players) {
+//     const p = players[id];
+//     ctx.fillStyle = p.color;
+//     ctx.beginPath();
+//     ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+//     ctx.fill();
+//   }
+//   requestAnimationFrame(draw);
+// }
+// draw();
 
 // send input regularly
 setInterval(sendInput, 100);
