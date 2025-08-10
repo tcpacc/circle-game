@@ -197,6 +197,7 @@ def handle_leave():
             break
     socketio.emit('state', {'room': room_name, 'players': rooms[room_name]['players']}, room=room_name)
 
+socketio.start_background_task(game_loop)
+
 if __name__ == '__main__':
-    socketio.start_background_task(game_loop)
     socketio.run(app, host='127.0.0.1', port=5000)

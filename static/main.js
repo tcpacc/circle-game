@@ -168,7 +168,7 @@ function render(){
 }
 
 
-requestAnimationFrame(render);
+render();
 
 // function draw() {
 //   ctx.clearRect(0, 0, WORLD.w, WORLD.h);
