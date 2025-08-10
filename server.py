@@ -27,7 +27,7 @@ TICK = 1.0 / 30.0
 # rooms: { room_name: { 'passcode': str, 'players': { sid: player_dict } } }
 rooms = {}
 player_room = {}
-usedUserNames=[]
+usedUserNames={}
 
 def room_exists(name):
     conn = sqlite3.connect(DB_FILE)
@@ -76,12 +76,15 @@ def handle_join(data):
         rooms[old_room]['players'].pop(sid, None)
         if not rooms[old_room]['players']:
             del rooms[old_room]
+
+    if room_name not in rooms:
+            rooms[room_name] = {'passcode': existing_passcode or existing_passcode, 'players': {}}
     
-    if username in usedUserNames:
-        socketio.emit('join_error', {'error': 'Username Already In Use'}, room=sid)
-        return
-    else:
-        usedUserNames.append(username)
+    # if sid in usedUserNames.keys():
+    #     socketio.emit('join_error', {'error': 'Username Already In Use'}, room=sid)
+    #     return
+    # else:
+    #     usedUserNames[sid] = username
 
     p = {
         'id': sid,
@@ -102,6 +105,7 @@ def handle_join(data):
 @socketio.on('disconnect')
 def handle_disconnect():
     sid = request.sid
+    usedUserNames.pop(sid)
     if sid in player_room:  # NEW: Ensure proper cleanup
         room_name = player_room.pop(sid)
         if room_name in rooms and sid in rooms[room_name]['players']:
@@ -181,6 +185,7 @@ def handle_chat(msg):
 @socketio.on('leave_room')
 def handle_leave():
     sid = request.sid
+    usedUserNames.pop(sid)
     for room_name, room_data in list(rooms.items()):
         if sid in room_data['players']:
             room_data['players'].pop(sid, None)
