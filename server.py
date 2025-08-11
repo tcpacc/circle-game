@@ -70,17 +70,20 @@ def handle_join(data):
         if room_name not in rooms:
             rooms[room_name] = {'passcode': existing_passcode, 'players': {}}
         
-    if sid in player_room:  # NEW: Leave old room
-        old_room = player_room[sid]
-        leave_room(old_room)
-        rooms[old_room]['players'].pop(sid, None)
-        if not rooms[old_room]['players']:
-            del rooms[old_room]
+    # if sid in player_room:
+    #     old_room = player_room[sid]
+    #     leave_room(old_room)
+    #     rooms[old_room]['players'].pop(sid, None)
+    #     if not rooms[old_room]['players']:
+    #         del rooms[old_room]
 
-    if room_name not in rooms:
-            rooms[room_name] = {'passcode': existing_passcode or existing_passcode, 'players': {}}
-    
-    if username in usedUserNames.values():
+    # if room_name not in rooms:
+    #         rooms[room_name] = {'passcode': existing_passcode or existing_passcode, 'players': {}}
+
+    if len(rooms[room_name]['players']) >=4:
+        socketio.emit('join_error', {'error': 'Room is Full'}, room=sid)
+        return
+    elif username in usedUserNames.values():
         socketio.emit('join_error', {'error': 'Username Already In Use'}, room=sid)
         return
     else:
@@ -172,6 +175,12 @@ def game_loop():
 @socketio.on('chat_message')
 def handle_chat(msg):
     sid = request.sid
+    if sid in player_room:
+        old_room = player_room[sid]
+        leave_room(old_room)
+        rooms[old_room]['players'].pop(sid, None)
+        if not rooms[old_room]['players']:
+            del rooms[old_room]
     for room_name, room_data in rooms.items():
         if sid in room_data['players']:
             player = room_data['players'][sid]
