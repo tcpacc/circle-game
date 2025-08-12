@@ -39,11 +39,8 @@
   </div>
   <h1 style="color: white; position: absolute; bottom: 1px;right: 1px;display: none;" id="roomName"></h1>
 
-  <!-- Socket.IO client must be loaded first -->
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <!-- Main client script (connects socket and handles rendering) -->
   <script src="/static/main.js"></script>
-  <!-- Small inline behaviour for the join form that uses the same `socket` object declared in main.js -->
   <script>
     const leaveBtn = document.getElementById('leaveBtn');
     const joinForm = document.getElementById('joinForm');
@@ -64,7 +61,6 @@
     });
 
     socket.on('init', () => {
-      // hide the join UI and show canvas
       document.getElementById('joinBox').style.display = 'none';
       document.getElementById('game').style.display = 'block';
       document.getElementById('roomName').style.display = 'block';
@@ -72,7 +68,6 @@
     });
 
     socket.on('system_message', data => {
-      // optional: flash system messages
       console.log('SYS:', data.msg);
     });
 

@@ -124,7 +124,10 @@ def handle_disconnect():
     usedUserNames.pop(sid)
     if sid in player_room:  # NEW: Ensure proper cleanup
         room_name = player_room.pop(sid)
-        del rooms[room_name]['scores'][sid]
+        try:
+            del rooms[room_name]['scores'][sid]
+        except:
+            pass
         if room_name in rooms and sid in rooms[room_name]['players']:
             rooms[room_name]['players'].pop(sid, None)
             leave_room(room_name)
@@ -168,7 +171,6 @@ def game_loop():
                 p['y'] += p['vy'] * dt
                 p['x'] = max(p['r'], min(WIDTH - p['r'], p['x']))
                 p['y'] = max(p['r'], min(HEIGHT - p['r'], p['y']))
-            # socketio.emit('state', {'room': room_name, 'players': room_data['players'],'ball': ball,'scores': room_data['scores']}, room=room_name)
             ball = room_data['ball']
             ballSpeedMultiplier = 1.5
             ball['x'] += ball['vx'] * dt
@@ -219,6 +221,8 @@ def game_loop():
                 ball['vx'] = -ball['vx']
 
             if goal_owner_sid:
+                ball['vx'] = 0
+                ball['vy'] = 0
                 room_data['scores'][goal_owner_sid] = room_data['scores'].get(goal_owner_sid, 0) + 1
 
             # Broadcast state
@@ -252,7 +256,10 @@ def handle_leave():
     usedUserNames.pop(sid)
     for room_name, room_data in list(rooms.items()):
         if sid in room_data['players']:
-            del rooms[room_name]['scores'][sid]
+            try:
+                del rooms[room_name]['scores'][sid]
+            except:
+                pass
             socketio.emit('system_message', {'msg': f'{room_data['players'][sid]['username']} left {room_name}'}, room=room_name)
             room_data['players'].pop(sid, None)
             leave_room(room_name)
