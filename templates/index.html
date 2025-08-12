@@ -36,7 +36,8 @@
         <input id="chatInput" type="text" placeholder="Type message..." style="flex:1; font-size:12px;" autocomplete="off">
         <button type="submit" style="font-size:12px;">Send</button>
     </form>
-    </div>
+  </div>
+  <h1 style="color: white; position: absolute; bottom: 1px;right: 1px;display: none;" id="roomName"></h1>
 
   <!-- Socket.IO client must be loaded first -->
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -50,6 +51,7 @@
     joinForm.addEventListener('submit', e => {
         e.preventDefault();
         msg.textContent = 'Joining...';
+        document.getElementById('roomName').innerText =`Room : ${document.getElementById('room').value}`
         socket.emit('join_room', {
             room: document.getElementById('room').value,
             passcode: document.getElementById('pass').value,
@@ -65,6 +67,7 @@
       // hide the join UI and show canvas
       document.getElementById('joinBox').style.display = 'none';
       document.getElementById('game').style.display = 'block';
+      document.getElementById('roomName').style.display = 'block';
       msg.textContent = '';
     });
 
@@ -80,6 +83,7 @@
         document.getElementById('game').style.display = 'none';
         document.getElementById("chat").style.display = "none";
         document.getElementById("messages").innerHTML = "";
+        document.getElementById('roomName').style.display = 'none';
         leaveBtn.style.display = 'none';
     });
 

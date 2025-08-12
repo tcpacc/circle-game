@@ -6,6 +6,10 @@ let WORLD = { w: 800, h: 600 };
 let players = {};
 let joined = false;
 
+//ball
+let ball = null;
+let scores = {};
+
 //chat messaging
 const chatDiv = document.getElementById('chat');
 const messagesDiv = document.getElementById('messages');
@@ -39,7 +43,8 @@ socket.on('init', (d) => {
 socket.on('state', (d) => {
   if (d.room !== currentRoom) return;
   players = d.players || {};
-  console.log('STATE RECEIVED', d.room, d.players ? Object.keys(d.players).length : 0);
+  ball = d.ball;
+  scores = d.scores || {};
 });
 
 // input handling
@@ -98,15 +103,19 @@ window.addEventListener('keydown', (e)=>{
   }
 });
 window.addEventListener('keyup', (e)=>{
-  if(e.key === 'ArrowUp' || e.key === 'w') keys.up = false;
-  if(e.key === 'ArrowDown' || e.key === 's') keys.down = false;
-  if(e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
-  if(e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
-  sendInput();
+  if(!typing){
+    if(e.key === 'ArrowUp' || e.key === 'w') keys.up = false;
+    if(e.key === 'ArrowDown' || e.key === 's') keys.down = false;
+    if(e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+    if(e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+    sendInput();
+  }
+  
 });
 
 // rendering
 function render(){
+  
   window.addEventListener("blur",()=>{
     keys.right =false;
     keys.left =false;
@@ -120,8 +129,31 @@ function render(){
   for(let y=0;y<WORLD.h;y+=40){ctx.fillRect(0,y,WORLD.w,1)}
   ctx.restore();
 
+   const playerIds = Object.keys(players);
+   const edgeColors = playerIds.map(id => players[id].color);
+
+   // Top edge
+   if (edgeColors[0]) {
+        ctx.fillStyle = edgeColors[0];
+        ctx.fillRect(0, 0, WORLD.w, 10);
+    }
+    // Right edge
+    if (edgeColors[2]) {
+        ctx.fillStyle = edgeColors[2];
+        ctx.fillRect(WORLD.w - 10, 0, 10, WORLD.h);
+    }
+    // Bottom edge
+    if (edgeColors[1]) {
+        ctx.fillStyle = edgeColors[1];
+        ctx.fillRect(0, WORLD.h - 10, WORLD.w, 10);
+    }
+    // Left edge
+    if (edgeColors[3]) {
+        ctx.fillStyle = edgeColors[3];
+        ctx.fillRect(0, 0, 10, WORLD.h);
+    }
+
   for(const sid in players){
-    console.log("test")
     const p = players[sid];
     const x = p.x; const y = p.y; const r = p.r || 16;
     ctx.beginPath();
@@ -136,6 +168,24 @@ function render(){
       ctx.lineWidth = 1.0;
       ctx.strokeStyle = 'rgba(255,255,255,0.08)';
       ctx.stroke();
+    }
+
+    // Draw ball
+    if (ball) {
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Draw scores at bottom
+    let scoreXPos = 20;
+    for (const id of playerIds) {
+        const score = scores[id] || 0;
+        ctx.fillStyle = players[id].color;
+        ctx.font = "20px Arial";
+        ctx.fillText(score, scoreXPos, WORLD.h - 20);
+        scoreXPos += 40;
     }
     
     // draw username

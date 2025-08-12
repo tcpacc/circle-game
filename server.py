@@ -1,5 +1,4 @@
 import eventlet
-# Must monkey patch before anything else
 eventlet.monkey_patch()
 
 from flask import Flask, render_template, request
@@ -12,7 +11,6 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 
 DB_FILE = 'rooms.db'
 
-# Ensure database exists
 if not os.path.exists(DB_FILE):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
@@ -24,7 +22,6 @@ WIDTH, HEIGHT = 800, 600
 PLAYER_SPEED = 220.0
 TICK = 1.0 / 30.0
 
-# rooms: { room_name: { 'passcode': str, 'players': { sid: player_dict } } }
 rooms = {}
 player_room = {}
 usedUserNames={}
@@ -63,12 +60,28 @@ def handle_join(data):
     if existing_passcode is None:
         create_room_db(room_name, passcode)
         rooms[room_name] = { 'passcode': passcode, 'players': {} }
+        rooms[room_name]['ball'] = {
+            'x': WIDTH / 2,
+            'y': HEIGHT / 2,
+            'vx': 200,
+            'vy': 200,
+            'r': 15
+        }
+        rooms[room_name]['scores'] = {} 
     else:
         if existing_passcode != passcode:
             socketio.emit('join_error', {'error': 'Invalid passcode'}, room=sid)
             return
         if room_name not in rooms:
             rooms[room_name] = {'passcode': existing_passcode, 'players': {}}
+            rooms[room_name]['ball'] = {
+                'x': WIDTH / 2,
+                'y': HEIGHT / 2,
+                'vx': 200,
+                'vy': 200,
+                'r': 15
+            }
+            rooms[room_name]['scores'] = {} 
         
     # if sid in player_room:
     #     old_room = player_room[sid]
@@ -111,10 +124,11 @@ def handle_disconnect():
     usedUserNames.pop(sid)
     if sid in player_room:  # NEW: Ensure proper cleanup
         room_name = player_room.pop(sid)
+        del rooms[room_name]['scores'][sid]
         if room_name in rooms and sid in rooms[room_name]['players']:
             rooms[room_name]['players'].pop(sid, None)
             leave_room(room_name)
-            socketio.emit('state', {'room': room_name, 'players': rooms[room_name]['players']}, room=room_name)
+            socketio.emit('state', {'room': room_name, 'players': rooms[room_name]['players'],'ball':rooms[room_name]['ball'],"scores":rooms[room_name]["scores"]}, room=room_name)
             socketio.emit('system_message', {'msg': f'Player left {room_name}'}, room=room_name)
             if not rooms[room_name]['players']:
                 del rooms[room_name]
@@ -124,7 +138,7 @@ def handle_input(data):
     sid = request.sid
     if sid in player_room:
         room_name = player_room[sid]
-        p = rooms[room_name]['players'][sid]
+        p = rooms[room_name]['players'].get(sid)
         try:
             dx = float(data.get('dx', 0))
             dy = float(data.get('dy', 0))
@@ -154,33 +168,73 @@ def game_loop():
                 p['y'] += p['vy'] * dt
                 p['x'] = max(p['r'], min(WIDTH - p['r'], p['x']))
                 p['y'] = max(p['r'], min(HEIGHT - p['r'], p['y']))
-            socketio.emit('state', {'room': room_name, 'players': room_data['players']}, room=room_name)
+            # socketio.emit('state', {'room': room_name, 'players': room_data['players'],'ball': ball,'scores': room_data['scores']}, room=room_name)
+            ball = room_data['ball']
+            ballSpeedMultiplier = 1.5
+            ball['x'] += ball['vx'] * dt
+            ball['y'] += ball['vy'] * dt
+
+            # Bounce on players
+            for sid, p in room_data['players'].items():
+                dx = ball['x'] - p['x']
+                dy = ball['y'] - p['y']
+                dist = (dx*dx + dy*dy) ** 0.5
+                if dist < ball['r'] + p['r']:
+                    if p['vx'] == 0:
+                    # Simple bounce: reverse velocity
+                        ball['vx'] = -ball['vx']
+                    else:
+                        ball['vx'] = p['vx']*ballSpeedMultiplier
+                    if p['vy'] == 0:
+                        ball['vy'] = -ball['vy']
+                    else:
+                        ball['vy'] = p['vy']*ballSpeedMultiplier
+                    break
+
+            # Goals (edges)
+            goal_owner_sid = None
+            if ball['y'] - ball['r'] <= 0:
+                if room_data['players']:
+                    goal_owner_sid = list(room_data['players'].keys())[0]
+                    ball['x'] = WIDTH/2
+                    ball['y'] = HEIGHT/2
+                ball['vy'] = -ball['vy']
+            elif ball['y'] + ball['r'] >=HEIGHT:
+                if len(room_data['players']) > 1:
+                    goal_owner_sid = list(room_data['players'].keys())[1]
+                    ball['x'] = WIDTH/2
+                    ball['y'] = HEIGHT/2
+                ball['vy'] = -ball['vy']
+            elif ball['x'] - ball['r'] <= 0:
+                if len(room_data['players']) > 2:
+                    goal_owner_sid = list(room_data['players'].keys())[2]
+                    ball['x'] = WIDTH/2
+                    ball['y'] = HEIGHT/2
+                ball['vx'] = -ball['vx']
+            elif ball['x'] + ball['r'] >= WIDTH:
+                if len(room_data['players']) > 3:
+                    goal_owner_sid = list(room_data['players'].keys())[3]
+                    ball['x'] = WIDTH/2
+                    ball['y'] = HEIGHT/2
+                ball['vx'] = -ball['vx']
+
+            if goal_owner_sid:
+                room_data['scores'][goal_owner_sid] = room_data['scores'].get(goal_owner_sid, 0) + 1
+
+            # Broadcast state
+            socketio.emit('state', {
+                'room': room_name,
+                'players': room_data['players'],
+                'ball': ball,
+                'scores': room_data['scores']
+            }, room=room_name)
 
 
         socketio.sleep(TICK)
 
-# @socketio.on('chat_message')
-# def handle_chat(msg):
-#     sid = request.sid
-#     for room_name, room_data in rooms.items():
-#         if sid in room_data['players']:
-#             player = room_data['players'][sid]
-#             socketio.emit('chat_message', {
-#                 'username': player['username'],
-#                 'color': player['color'],
-#                 'text': msg
-#             }, room=room_name)
-#             break
-
 @socketio.on('chat_message')
 def handle_chat(msg):
     sid = request.sid
-    if sid in player_room:
-        old_room = player_room[sid]
-        leave_room(old_room)
-        rooms[old_room]['players'].pop(sid, None)
-        if not rooms[old_room]['players']:
-            del rooms[old_room]
     for room_name, room_data in rooms.items():
         if sid in room_data['players']:
             player = room_data['players'][sid]
@@ -198,13 +252,15 @@ def handle_leave():
     usedUserNames.pop(sid)
     for room_name, room_data in list(rooms.items()):
         if sid in room_data['players']:
+            del rooms[room_name]['scores'][sid]
+            socketio.emit('system_message', {'msg': f'{room_data['players'][sid]['username']} left {room_name}'}, room=room_name)
             room_data['players'].pop(sid, None)
             leave_room(room_name)
             socketio.emit('left_room', room=sid)  # Notify client to hide chat
             if not room_data['players']:
                 del rooms[room_name]
+            socketio.emit('state', {'room': room_name, 'players': rooms[room_name]['players'],'ball' : room_data["ball"],'scores': room_data['scores']}, room=room_name)
             break
-    socketio.emit('state', {'room': room_name, 'players': rooms[room_name]['players']}, room=room_name)
 
 socketio.start_background_task(game_loop)
 
